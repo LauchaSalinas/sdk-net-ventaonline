@@ -4,6 +4,7 @@ using Decidir.Exceptions;
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 namespace Decidir.Services
 {
@@ -14,10 +15,11 @@ namespace Decidir.Services
             this.restClient = new RestClient(this.endpoint, headers, CONTENT_TYPE_APP_JSON);
         }
 
-        public HealthCheckResponse Execute()
+        public async Task<HealthCheckResponse> ExecuteAsync()
         {
+            await Task.Delay(100);
             HealthCheckResponse response = new HealthCheckResponse();
-            RestResponse result = this.restClient.Get("healthcheck", "");
+            RestResponse result = await restClient.GetAsync("healthcheck", "");
 
             if (result.StatusCode == STATUS_OK && !String.IsNullOrEmpty(result.Response))
             {
@@ -30,7 +32,7 @@ namespace Decidir.Services
                 else
                     throw new ResponseException(result.StatusCode + " - " + result.Response);
             }
-             
+
             return response;
         }
     }

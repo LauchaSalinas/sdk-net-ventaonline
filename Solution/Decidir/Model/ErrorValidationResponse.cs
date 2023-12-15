@@ -4,5 +4,6 @@
     {
         public string code { get; set; }
         public string param { get; set; }
+        public string status { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using Decidir.Model;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Decidir.Services
 {
@@ -14,10 +15,10 @@ namespace Decidir.Services
             this.restClient = new RestClient(this.endpoint, headers, CONTENT_TYPE_APP_JSON);
         }
 
-        public bool DeleteCardToken(string tokenizedCard)
+        public async Task<bool> DeleteCardTokenAsync(string tokenizedCard)
         {
             bool deleted = false;
-            RestResponse result = this.restClient.Delete(String.Format("cardtokens/{0}", tokenizedCard));
+            RestResponse result = await restClient.DeleteAsync(String.Format("cardtokens/{0}", tokenizedCard));
 
             if (result.StatusCode == STATUS_NOCONTENT)
             {

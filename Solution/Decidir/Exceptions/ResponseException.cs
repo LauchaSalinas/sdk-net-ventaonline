@@ -16,6 +16,11 @@ namespace Decidir.Exceptions
             this.errorResponse = errorResponse;
         }
 
+        public ResponseException(String message, ErrorResponse errorResponse, Exception innerException) : base(message, innerException)
+        {
+            this.errorResponse = errorResponse;
+        }
+
         public ErrorResponse GetErrorResponse()
         {
             return this.errorResponse;

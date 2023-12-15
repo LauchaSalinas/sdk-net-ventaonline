@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Decidir.Services
 {
@@ -35,12 +36,12 @@ namespace Decidir.Services
             this.restClient = new RestClient(this.endpoint, headers, CONTENT_TYPE_APP_JSON);
         }
 
-        public BatchClosureResponse BatchClosureActive(String batchClosure)
+        public async Task<BatchClosureResponse> BatchClosureActiveAsync(String batchClosure)
         {
             BatchClosureResponse refund = null;
 
 
-            RestResponse result = this.restClient.Post(String.Format("closures/batchclosure"), batchClosure);
+            RestResponse result = await restClient.PostAsync(String.Format("closures/batchclosure"), batchClosure);
 
             if (result.StatusCode == STATUS_CREATED && !String.IsNullOrEmpty(result.Response))
             {

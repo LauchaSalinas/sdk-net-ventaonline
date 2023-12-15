@@ -7,7 +7,7 @@ namespace Decidir.Exceptions
     {
         protected PaymentResponse paymentResponse;
         protected int statusCode;
-        
+
         public PaymentResponseException(String message) : base(message)
         {
         }
@@ -24,6 +24,11 @@ namespace Decidir.Exceptions
         }
 
         public PaymentResponseException(String message, ErrorResponse errorResponse, int statuscode) : base(message, errorResponse)
+        {
+            this.errorResponse = errorResponse;
+            this.statusCode = statuscode;
+        }
+        public PaymentResponseException(String message, ErrorResponse errorResponse, int statuscode, Exception innerException) : base(message, errorResponse, innerException)
         {
             this.errorResponse = errorResponse;
             this.statusCode = statuscode;

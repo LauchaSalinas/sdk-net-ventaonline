@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Decidir.Constants;
+using Decidir.Exceptions;
 using Decidir.Model;
 using Decidir.Services;
 using Newtonsoft.Json;
@@ -63,7 +65,7 @@ namespace Decidir
         public DecidirConnector(string request_host, string request_path, string privateApiKey, string publicApiKey, string validateApiKey = null, string merchant = null, string grouper = "", string developer = "")
         {
             this.request_host = request_host;
-            this.endpoint = request_host + request_path;
+            endpoint = request_host + request_path;
             init(-1, privateApiKey, publicApiKey, validateApiKey, merchant, grouper, developer);
         }
 
@@ -76,139 +78,243 @@ namespace Decidir
             this.grouper = grouper;
             this.developer = developer;
 
-            this.headers = new Dictionary<string, string>();
-            headers.Add("apikey", this.privateApiKey);
+            headers = new Dictionary<string, string>();
+            headers.Add("apikey", privateApiKey);
             headers.Add("Cache-Control", "no-cache");
             headers.Add("X-Source", getXSource(grouper, developer));
 
-            this.bathClosureService = new BatchClosure(this.endpoint, this.privateApiKey, this.validateApiKey, this.merchant, this.request_host, this.publicApiKey);
+            bathClosureService = new BatchClosure(endpoint, privateApiKey, validateApiKey, merchant, request_host, publicApiKey);
 
             if (ambiente == Ambiente.AMBIENTE_PRODUCCION)
             {
-                this.endpoint = endPointProduction;
-                this.request_host = request_host_production;
-                this.endPointInternalToken = endPointInternalTokenProduction;
+                endpoint = endPointProduction;
+                request_host = request_host_production;
+                endPointInternalToken = endPointInternalTokenProduction;
             }
             else if (ambiente == Ambiente.AMBIENTE_QA)
             {
-                this.endpoint = endPointQA;
-                this.request_host = request_host_qa;
-                this.endPointInternalToken = endPointInternalTokenQA;
-                this.bathClosureService = new BatchClosure(endPointQAClosure, this.privateApiKey, this.validateApiKey, this.merchant, this.request_host, this.publicApiKey);
+                endpoint = endPointQA;
+                request_host = request_host_qa;
+                endPointInternalToken = endPointInternalTokenQA;
+                bathClosureService = new BatchClosure(endPointQAClosure, privateApiKey, validateApiKey, merchant, request_host, publicApiKey);
             }
             else if (ambiente == Ambiente.AMBIENTE_SANDBOX)
             {
-                this.endpoint = endPointSandbox;
-                this.request_host = request_host_sandbox;
-                this.endPointInternalToken = endPointInternalTokenSandbox;
+                endpoint = endPointSandbox;
+                request_host = request_host_sandbox;
+                endPointInternalToken = endPointInternalTokenSandbox;
             }
 
-           
-            this.healthCheckService = new HealthCheck(this.endpoint, this.headers);
-            this.paymentService = new Payments(this.endpoint, this.endPointInternalToken, this.privateApiKey, this.headers, this.validateApiKey, this.merchant, this.request_host, this.publicApiKey);
-            this.userSiteService = new UserSite(this.endpoint, this.privateApiKey, this.headers);
-            this.cardTokensService = new CardTokens(this.endpoint, this.privateApiKey,this.headers);
+
+            healthCheckService = new HealthCheck(endpoint, headers);
+            paymentService = new Payments(endpoint, endPointInternalToken, privateApiKey, headers, validateApiKey, merchant, request_host, publicApiKey);
+            userSiteService = new UserSite(endpoint, privateApiKey, headers);
+            cardTokensService = new CardTokens(endpoint, privateApiKey, headers);
 
         }
-
 
         public HealthCheckResponse HealthCheck()
         {
-            return this.healthCheckService.Execute();
+            return healthCheckService.ExecuteAsync().GetAwaiter().GetResult();
         }
-        
+
+        public async Task<HealthCheckResponse> HealthCheckAsync()
+        {
+            return await healthCheckService.ExecuteAsync();
+        }
+
         public PaymentResponse Payment(Payment payment)
         {
-            return this.paymentService.ExecutePayment(payment);
+            return paymentService.ExecutePaymentAsync(payment).GetAwaiter().GetResult();
         }
 
-        public GetCryptogramResponse Cryptogram(CryptogramRequest cryptogramRequest)
+        public async Task<PaymentResponse> PaymentAsync(Payment payment)
         {
-            return this.paymentService.GetCryptogram(cryptogramRequest);
+            return await paymentService.ExecutePaymentAsync(payment);
         }
 
-        public PaymentResponse Payment(OfflinePayment payment)
+        public async Task<GetCryptogramResponse> CryptogramAsync(CryptogramRequest cryptogramRequest)
         {
-            return this.paymentService.ExecutePayment(payment);
+            return await paymentService.GetCryptogramAsync(cryptogramRequest);
+        }
+
+        public async Task<PaymentResponse> PaymentAsync(OfflinePayment payment)
+        {
+            return await paymentService.ExecutePaymentAsync(payment);
         }
 
         public CapturePaymentResponse CapturePayment(long paymentId, long amount)
         {
-            return this.paymentService.CapturePayment(paymentId, amount);
+            return paymentService.CapturePaymentAsync(paymentId, amount).GetAwaiter().GetResult();
+        }
+
+        public async Task<CapturePaymentResponse> CapturePaymentAsync(long paymentId, long amount)
+        {
+            return await paymentService.CapturePaymentAsync(paymentId, amount);
         }
 
         public GetAllPaymentsResponse GetAllPayments(long? offset = null, long? pageSize = null, string siteOperationId = null, string merchantId = null)
         {
-            return this.paymentService.GetAllPayments(offset, pageSize, siteOperationId, merchantId);
+            return paymentService.GetAllPaymentsAsync(offset, pageSize, siteOperationId, merchantId).GetAwaiter().GetResult();
+        }
+
+        public async Task<GetAllPaymentsResponse> GetAllPaymentsAsync(long? offset = null, long? pageSize = null, string siteOperationId = null, string merchantId = null)
+        {
+            return await paymentService.GetAllPaymentsAsync(offset, pageSize, siteOperationId, merchantId);
         }
 
         public PaymentResponse GetPaymentInfo(long paymentId)
         {
-            return this.paymentService.GetPaymentInfo(paymentId);
+            return paymentService.GetPaymentInfoAsync(paymentId).GetAwaiter().GetResult();
+        }
+
+        public async Task<PaymentResponse> GetPaymentInfoAsync(long paymentId)
+        {
+            return await paymentService.GetPaymentInfoAsync(paymentId);
         }
 
         public RefundPaymentResponse Refund(long paymentId)
         {
-            return this.paymentService.Refund(paymentId, emptyObject);
+            return paymentService.RefundAsync(paymentId, emptyObject).GetAwaiter().GetResult();
+        }
+
+        public async Task<RefundPaymentResponse> RefundAsync(long paymentId)
+        {
+            return await paymentService.RefundAsync(paymentId, emptyObject);
         }
 
         public RefundPaymentResponse RefundSubPayment(long paymentId, RefundSubPaymentRequest refundSubPaymentRequest)
         {
-            return this.paymentService.Refund(paymentId, this.ObjectToJson(refundSubPaymentRequest));    
+            return paymentService.RefundAsync(paymentId, ObjectToJson(refundSubPaymentRequest)).GetAwaiter().GetResult();
+        }
+
+        public async Task<RefundPaymentResponse> RefundSubPaymentAsync(long paymentId, RefundSubPaymentRequest refundSubPaymentRequest)
+        {
+            return await paymentService.RefundAsync(paymentId, ObjectToJson(refundSubPaymentRequest));
         }
 
         public BatchClosureResponse BatchClosure(string batchClosure)
         {
-            return this.bathClosureService.BatchClosureActive(batchClosure);
+            return bathClosureService.BatchClosureActiveAsync(batchClosure).GetAwaiter().GetResult();
+        }
+
+        public async Task<BatchClosureResponse> BatchClosureAsync(string batchClosure)
+        {
+            return await bathClosureService.BatchClosureActiveAsync(batchClosure);
         }
 
         public RefundResponse DeleteRefund(long paymentId, long? refundId)
         {
-            return this.paymentService.DeleteRefund(paymentId, refundId);
+            return paymentService.DeleteRefundAsync(paymentId, refundId).GetAwaiter().GetResult();
+        }
+
+        public async Task<RefundResponse> DeleteRefundAsync(long paymentId, long? refundId)
+        {
+            return await paymentService.DeleteRefundAsync(paymentId, refundId);
+        }
+
+        public async Task<RefundPaymentResponse> PartialRefundAsync(long paymentId, double amount)
+        {
+            RefundAmount partialRefund = new RefundAmount();
+
+            try
+            {
+                partialRefund.amount = Convert.ToInt64(amount * 100);
+            }
+            catch (Exception ex)
+            {
+                throw new ResponseException(ex.Message);
+            }
+            return await paymentService.RefundAsync(paymentId, ObjectToJson(partialRefund));
         }
 
         public RefundPaymentResponse PartialRefund(long paymentId, RefundAmount amount)
         {
-            return this.paymentService.Refund(paymentId, this.ObjectToJson(amount));
+            return paymentService.RefundAsync(paymentId, ObjectToJson(amount)).GetAwaiter().GetResult();
+        }
+
+        public async Task<RefundPaymentResponse> PartialRefundAsync(long paymentId, RefundAmount amount)
+        {
+            return await paymentService.RefundAsync(paymentId, ObjectToJson(amount));
         }
 
         public RefundResponse DeletePartialRefund(long paymentId, long? refundId)
         {
-            return this.paymentService.DeletePartialRefund(paymentId, refundId);
+            return paymentService.DeletePartialRefundAsync(paymentId, refundId).GetAwaiter().GetResult();
+        }
+
+        public async Task<RefundResponse> DeletePartialRefundAsync(long paymentId, long? refundId)
+        {
+            return await paymentService.DeletePartialRefundAsync(paymentId, refundId);
         }
 
         public GetAllCardTokensResponse GetAllCardTokens(string userId)
         {
-            return this.userSiteService.GetAllTokens(userId);
+            return userSiteService.GetAllTokensAsync(userId).GetAwaiter().GetResult();
+        }
+        public async Task<GetAllCardTokensResponse> GetAllCardTokensAsync(string userId)
+        {
+            return await userSiteService.GetAllTokensAsync(userId);
         }
 
         public bool DeleteCardToken(string token)
         {
-            return this.cardTokensService.DeleteCardToken(token);
+            return cardTokensService.DeleteCardTokenAsync(token).GetAwaiter().GetResult();
+        }
+
+        public async Task<bool> DeleteCardTokenAsync(string token)
+        {
+            return await cardTokensService.DeleteCardTokenAsync(token);
         }
 
         public ValidateResponse Validate(ValidateData validateData)
         {
-            return this.paymentService.ValidatePayment(validateData);
+            return paymentService.ValidatePaymentAsync(validateData).GetAwaiter().GetResult();
         }
+
+        public async Task<ValidateResponse> ValidateAsync(ValidateData validateData)
+        {
+            return await paymentService.ValidatePaymentAsync(validateData);
+        }
+
         public GetTokenResponse GetTokenByCardTokenBsa(CardTokenBsa card_token_bsa)
         {
-            return this.paymentService.GetTokenByCardTokenBsa(card_token_bsa);
+            return paymentService.GetTokenByCardTokenBsaAsync(card_token_bsa).GetAwaiter().GetResult();
+        }
+
+        public async Task<GetTokenResponse> GetTokenByCardTokenBsaAsync(CardTokenBsa card_token_bsa)
+        {
+            return await paymentService.GetTokenByCardTokenBsaAsync(card_token_bsa);
         }
 
         public GetTokenResponse GetToken(TokenRequest token)
         {
-            return this.paymentService.GetToken(token);
+            return paymentService.GetTokenAsync(token).GetAwaiter().GetResult();
+        }
+
+        public async Task<GetTokenResponse> GetTokenAsync(TokenRequest token)
+        {
+            return await paymentService.GetTokenAsync(token);
         }
 
         public GetInternalTokenResponse GetInternalToken(InternalTokenRequest token)
         {
-            return this.paymentService.GetInternalToken(token);
+            return paymentService.GetInternalTokenAsync(token).GetAwaiter().GetResult();
+        }
+
+        public async Task<GetInternalTokenResponse> GetInternalTokenAsync(InternalTokenRequest token)
+        {
+            return await paymentService.GetInternalTokenAsync(token);
         }
 
         public PaymentResponse InstructionThreeDS(string xConsumerUsername, Instruction3dsData instruction3DsData)
         {
-            return this.paymentService.InstructionThreeDS(xConsumerUsername, instruction3DsData);
+            return paymentService.InstructionThreeDSAsync(xConsumerUsername, instruction3DsData).GetAwaiter().GetResult();
+        }
+
+        public async Task<PaymentResponse> InstructionThreeDSAsync(string xConsumerUsername, Instruction3dsData instruction3DsData)
+        {
+            return await paymentService.InstructionThreeDSAsync(xConsumerUsername, instruction3DsData);
         }
 
         private string getXSource(String grouper, String developer)

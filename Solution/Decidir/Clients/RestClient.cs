@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Decidir.Clients
 {
@@ -54,16 +55,16 @@ namespace Decidir.Clients
             this.contentType = contentType;
         }
 
-        public RestResponse Get(string url, string data)
+        public async Task<RestResponse> GetAsync(string url, string data)
         {
             string uri = endpoint + url + data;
 
             var httpWebRequest = Initialize(uri, METHOD_GET);
 
-            return DoRequest(httpWebRequest);
+            return await DoRequestAsync(httpWebRequest);
         }
 
-        public RestResponse Post(string url, string data)
+        public async Task<RestResponse> PostAsync(string url, string data)
         {
             string uri = endpoint + url;
 
@@ -81,20 +82,20 @@ namespace Decidir.Clients
                 }
             }
 
-            return DoRequest(httpWebRequest);
+            return await DoRequestAsync(httpWebRequest);
         }
 
-        public RestResponse Delete(string url)
+        public async Task<RestResponse> DeleteAsync(string url)
         {
             string uri = endpoint + url;
 
             var httpWebRequest = Initialize(uri, METHOD_DELETE);
             httpWebRequest.ContentType = null;
 
-            return DoRequest(httpWebRequest);
+            return await DoRequestAsync(httpWebRequest);
         }
 
-        public RestResponse Put(string url, string data = null)
+        public async Task<RestResponse> PutAsync(string url, string data = null)
         {
             string uri = endpoint + url;
 
@@ -112,14 +113,14 @@ namespace Decidir.Clients
                 }
             }
 
-            return DoRequest(httpWebRequest);
+            return await DoRequestAsync(httpWebRequest);
         }
 
         protected HttpWebRequest Initialize(string uri, string method)
         {
             HttpWebRequest httpWebRequest = (HttpWebRequest)WebRequest.Create(uri);
             httpWebRequest.Method = method;
-
+            httpWebRequest.Timeout = 900000;
             httpWebRequest.ContentLength = 0;
 
             if (!String.IsNullOrEmpty(contentType))
@@ -132,14 +133,16 @@ namespace Decidir.Clients
             return httpWebRequest;
         }
 
-        protected RestResponse DoRequest(HttpWebRequest httpWebRequest)
+        protected async Task<RestResponse> DoRequestAsync(HttpWebRequest httpWebRequest)
         {
             RestResponse result = new RestResponse();
             result.Response = String.Empty;
-
+            ServicePointManager.Expect100Continue = true;
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
             try
             {
-                using (var response = (HttpWebResponse)httpWebRequest.GetResponse())
+
+                using (var response = await httpWebRequest.GetResponseAsync() as HttpWebResponse)
                 {
                     result.StatusCode = ((int)response.StatusCode);
 
@@ -175,7 +178,7 @@ namespace Decidir.Clients
                         {
                             using (var reader = new StreamReader(responseStream))
                             {
-                                result.Response = reader.ReadToEnd();
+                                result.Response = await reader.ReadToEndAsync();
                             }
                         }
                     }
